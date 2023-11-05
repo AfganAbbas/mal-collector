@@ -71,6 +71,6 @@ app.get('/api/v1/anime', (req, res) => {
 
 })
 
-app.listen(process.env.PORT, () => {
-    console.log('App started on localhost:2323')
+app.listen(process.env.CLIENT_PORT, () => {
+    console.log(`App started on localhost:${process.env.CLIENT_PORT}`)
 })
