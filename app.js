@@ -1,5 +1,5 @@
 require('./config')
-const execScrap = require('./lib/scrape');
+const { execScrap } = require('./lib/scrape');
 const { getConnection, create } = require('./lib/db')
 const cron = require('node-cron')
 const express = require('express');
@@ -24,10 +24,26 @@ connection.changeUser({ database: dbname }, (err) => {
 function createTable() {
     connection.query(`CREATE TABLE IF NOT EXISTS anime (
       id INT AUTO_INCREMENT NOT NULL PRIMARY KEY,
-      name VARCHAR(100),
+      title TEXT,
       description TEXT,
-      main_image_url VARCHAR(100),
-      mal_url VARCHAR(100)
+      main_image_url TEXT,
+      mal_url TEXT,
+      japanese TEXT,
+      english TEXT,
+      type TEXT,
+      episodes TEXT,
+      status TEXT,
+      aired TEXT,
+      premiered TEXT,
+      producers TEXT,
+      licensors TEXT,
+      studios TEXT,
+      source TEXT,
+      genres TEXT,
+      themes TEXT,
+      duration TEXT,
+      rating TEXT,
+      score TEXT
     )`, (err) => {
         if (err) throw new Error(err);
         console.log('Table created/exists');
@@ -40,18 +56,37 @@ const app = express();
 
 app.use(express.json())
 
-const insertAnimeQuery = `INSERT INTO anime(name, description, main_image_url, mal_url) VALUES(?,?,?,?)`
+const insertAnimeQuery = `INSERT INTO anime SET ?`
 
 
 function insertAnime(animeObj) {
-    const animeArr = Object.values(animeObj)
-    connection.query(insertAnimeQuery, animeArr, (err) => {
+    connection.query(insertAnimeQuery, animeObj, (err) => {
+        // console.log(animeObj, 'animearr');
         if (err) throw new Error(err);
+        // connection.end();
     });
 }
 
-const initSchedule = () => {
-    let i = 1;
+
+const getLastAnime = () => {
+    return new Promise((resolve, reject)=>{
+        connection.query(`SELECT mal_url FROM anime ORDER BY id DESC LIMIT 1`, (error, results) => {
+            if (error) {
+              reject(error);
+            } else {
+              resolve(results[0]);
+            }
+        })
+    })
+}
+
+const initSchedule = async () => {
+    let i=1;
+    let out = await getLastAnime();
+    if(out) {
+        i = parseInt(out.mal_url.split('/').pop())+1;
+        console.log(`Starting from last index(${i})...`);
+    }
     const schedule = cron.schedule("*/5 * * * * *", function () {
         execScrap(i, insertAnime);
         i++;
